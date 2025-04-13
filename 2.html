@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Auth + Dashboard App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+    }
+    input {
+      padding: 10px;
+      margin: 5px;
+      display: block;
+    }
+    .hidden {
+      display: none;
+    }
+    img {
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="register-section">
+    <h2>Register</h2>
+    <input type="text" id="reg-name" placeholder="Name">
+    <input type="email" id="reg-email" placeholder="Email">
+    <input type="password" id="reg-password" placeholder="Password">
+    <button onclick="registerUser()">Register</button>
+    <p>Already have an account? <a href="#" onclick="showSection('login')">Login</a></p>
+  </div>
+
+  <div id="login-section" class="hidden">
+    <h2>Login</h2>
+    <input type="email" id="login-email" placeholder="Email">
+    <input type="password" id="login-password" placeholder="Password">
+    <button onclick="loginUser()">Login</button>
+    <p>Don't have an account? <a href="#" onclick="showSection('register')">Register</a></p>
+  </div>
+
+  <div id="dashboard-section" class="hidden">
+    <h2>Dashboard</h2>
+    <button onclick="logoutUser()">Logout</button>
+    <div id="products"></div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "your-app.firebaseapp.com",
+      databaseURL: "https://your-app.firebaseio.com",
+      projectId: "your-app",
+      storageBucket: "your-app.appspot.com",
+      messagingSenderId: "your-messaging-sender-id",
+      appId: "your-app-id"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function showSection(section) {
+      document.getElementById('register-section').classList.add('hidden');
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('dashboard-section').classList.add('hidden');
+
+      if (section === 'register') {
+        document.getElementById('register-section').classList.remove('hidden');
+      } else if (section === 'login') {
+        document.getElementById('login-section').classList.remove('hidden');
+      } else if (section === 'dashboard') {
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        loadProducts();
+      }
+    }
+
+    function registerUser() {
+      const name = document.getElementById("reg-name").value;
+      const email = document.getElementById("reg-email").value;
+      const password = document.getElementById("reg-password").value;
+      const userId = Date.now();
+
+      db.ref("users/" + userId).set({ name, email, password }).then(() => {
+        alert("Registration Successful! Please log in.");
+        showSection('login');
+      });
+    }
+
+    function loginUser() {
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      db.ref("users").once("value", snapshot => {
+        const users = snapshot.val();
+        let found = false;
+
+        for (let id in users) {
+          if (users[id].email === email && users[id].password === password) {
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("userName", users[id].name);
+            found = true;
+            break;
+          }
+        }
+
+        if (found) {
+          showSection('dashboard');
+        } else {
+          alert("Wrong credentials! Try again.");
+        }
+      });
+    }
+
+    function logoutUser() {
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("userName");
+      showSection('login');
+    }
+
+    function loadProducts() {
+      const productsDiv = document.getElementById("products");
+      productsDiv.innerHTML = "Loading products...";
+
+      fetch("https://fakestoreapi.com/products")
+        .then(res => res.json())
+        .then(data => {
+          productsDiv.innerHTML = '';
+          data.forEach(product => {
+            const div = document.createElement("div");
+            div.innerHTML = `
+              <h3>${product.title}</h3>
+              <img src="${product.image}" />
+              <p>Price: $${product.price}</p>
+              <hr/>
+            `;
+            productsDiv.appendChild(div);
+          });
+        });
+    }
+
+    window.onload = () => {
+      const isLoggedIn = localStorage.getItem("isLoggedIn");
+      if (isLoggedIn) {
+        showSection('dashboard');
+      } else {
+        showSection('login');
+      }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+
+Here are some more points that highlight the difference between Authentication and Authorization:
+
+Authentication:
+Purpose: Its main goal is to verify the identity of a user, device, or system.
+
+Process:
+
+It involves checking the user's credentials (username, password, fingerprint, etc.).
+
+Common methods include passwords, PINs, security tokens, biometric data, or multi-factor authentication (MFA).
+
+Outcome: Once authentication is successful, the system knows who the user is.
+
+Example:
+
+When you enter your username and password on a website, the system authenticates you to confirm your identity.
+
+An example in real life: You show your ID card at the door to confirm you’re authorized to enter.
+
+Scope:
+
+Authentication is often required for anyone trying to access a system or application, regardless of what they want to do.
+
+Can Be Repeated: Users may be authenticated every time they log in or attempt access.
+
+Authorization:
+Purpose: Its main goal is to determine what a user or system can do once their identity has been verified (authenticated).
+
+Process:
+
+Once authenticated, the system checks the permissions associated with the user's role or profile.
+
+It is based on rules set by the system, like role-based access control (RBAC) or attribute-based access control (ABAC).
+
+Outcome: The system grants or denies access to specific resources, actions, or data based on the user's permissions.
+
+Example:
+
+After logging in, an admin might have access to a dashboard with user management options, while a regular user may only be able to view their account details.
+
+An example in real life: After showing your ID at the entrance, the security guard decides what areas of the building you're allowed to enter (e.g., office rooms, restricted areas).
+
+Scope:
+
+Authorization is more about controlling access to different parts of the system based on roles, permissions, or rights.
+
+Can Be Static or Dynamic: Depending on the system, user permissions may change, for example, an employee may be promoted to admin, which changes their authorization.

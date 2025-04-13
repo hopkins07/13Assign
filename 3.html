@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Commerce Admin Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 50px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 400px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    h1, h3 {
+      text-align: center;
+    }
+    #product-list {
+      margin-top: 20px;
+    }
+    #product-list div {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="app">
+    <div id="register-form">
+      <h1>Sign Up</h1>
+      <form id="signup-form">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <select id="role" required>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="submit">Register</button>
+      </form>
+      <p id="error-message" style="color: red;"></p>
+    </div>
+
+    <div id="login-form" style="display: none;">
+      <h1>Login</h1>
+      <form id="login-form-submit">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit">Login</button>
+      </form>
+      <p id="login-error-message" style="color: red;"></p>
+    </div>
+
+    <div id="admin-dashboard" style="display: none;">
+      <h1>Admin Dashboard</h1>
+      <div id="product-list"></div>
+      <h3>Add New Product</h3>
+      <form id="add-product-form">
+        <input type="text" id="product-title" placeholder="Product Title" required>
+        <input type="number" id="product-price" placeholder="Product Price" required>
+        <input type="text" id="product-image" placeholder="Product Image URL" required>
+        <button type="submit">Add Product</button>
+      </form>
+      <button id="logout-admin">Logout</button>
+    </div>
+
+    <div id="user-dashboard" style="display: none;">
+      <h1>User Dashboard</h1>
+      <div id="user-product-list"></div>
+      <button id="logout-user">Logout</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const errorMessage = document.getElementById('error-message');
+    const loginErrorMessage = document.getElementById('login-error-message');
+    const appContainer = document.getElementById('app');
+    const registerForm = document.getElementById('register-form');
+    const loginForm = document.getElementById('login-form');
+    const adminDashboard = document.getElementById('admin-dashboard');
+    const userDashboard = document.getElementById('user-dashboard');
+    const productListAdmin = document.getElementById('product-list');
+    const productListUser = document.getElementById('user-product-list');
+    const logoutAdminBtn = document.getElementById('logout-admin');
+    const logoutUserBtn = document.getElementById('logout-user');
+    
+    function showLoginForm() {
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'block';
+    }
+
+    function switchToDashboard(role) {
+      if (role === 'admin') {
+        adminDashboard.style.display = 'block';
+        loadProductsAdmin();
+      } else {
+        userDashboard.style.display = 'block';
+        loadProductsUser();
+      }
+      appContainer.style.display = 'block';
+    }
+
+    document.getElementById("signup-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const role = document.getElementById("role").value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const userId = userCredential.user.uid;
+          db.ref('users/' + userId).set({ email: email, role: role }).then(() => {
+            showLoginForm();
+          });
+        })
+        .catch((error) => {
+          errorMessage.textContent = error.message;
+        });
+    });
+
+    document.getElementById("login-form-submit").addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const userId = userCredential.user.uid;
+          db.ref('users/' + userId).once('value').then((snapshot) => {
+            const role = snapshot.val().role;
+            sessionStorage.setItem('role', role);
+            switchToDashboard(role);
+          });
+        })
+        .catch(() => {
+          loginErrorMessage.textContent = "Incorrect email or password!";
+        });
+    });
+
+    function loadProductsAdmin() {
+      db.ref('products').once('value').then((snapshot) => {
+        const products = snapshot.val();
+        productListAdmin.innerHTML = '';
+        for (let id in products) {
+          const product = products[id];
+          productListAdmin.innerHTML += `
+            <div>
+              ${product.title} - $${product.price}
+              <button onclick="deleteProduct('${id}')">Delete</button>
+            </div>
+          `;
+        }
+      });
+    }
+
+    function loadProductsUser() {
+      db.ref('products').once('value').then((snapshot) => {
+        const products = snapshot.val();
+        productListUser.innerHTML = '';
+        for (let id in products) {
+          const product = products[id];
+          productListUser.innerHTML += `
+            <div>
+              ${product.title} - $${product.price}
+            </div>
+          `;
+        }
+      });
+    }
+
+    document.getElementById('add-product-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('product-title').value;
+      const price = document.getElementById('product-price').value;
+      const image = document.getElementById('product-image').value;
+
+      const newProduct = { title: title, price: price, image: image };
+      db.ref('products').push(newProduct).then(() => {
+        loadProductsAdmin();
+      });
+    });
+
+    function deleteProduct(productId) {
+      db.ref('products/' + productId).remove().then(() => {
+        loadProductsAdmin();
+      });
+    }
+
+    logoutAdminBtn.addEventListener('click', () => {
+      auth.signOut().then(() => {
+        adminDashboard.style.display = 'none';
+        showLoginForm();
+      });
+    });
+
+    logoutUserBtn.addEventListener('click', () => {
+      auth.signOut().then(() => {
+        userDashboard.style.display = 'none';
+        showLoginForm();
+      });
+    });
+
+    window.onload = () => {
+      const role = sessionStorage.getItem('role');
+      if (role === 'admin') {
+        switchToDashboard('admin');
+      } else if (role === 'user') {
+        switchToDashboard('user');
+      } else {
+        showLoginForm();
+      }
+    };
+  </script>
+
+</body>
+</html>
